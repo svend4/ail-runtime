@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Star Gate Scientific Keyboard</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #141b24;
+    --key: #1e2a3a;
+    --key2: #253447;
+    --acc: #3d8bfd;
+    --d1: #5b8fb9;
+    --d2: #d4a017;
+    --d3: #e05a3c;
+    --mac: #1f6f5b;
+    --text: #e8eef6;
+    --muted: #8b9bb0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 12px;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  h1 { font-size: 1.1rem; margin: 0 0 8px; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 10px; }
+
+  /* Display like calculator */
+  .display {
+    background: #0a1520;
+    border: 1px solid #2a3b50;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .display .mode {
+    font-size: 0.7rem; color: var(--muted); letter-spacing: 0.04em;
+  }
+  #screen {
+    width: 100%; min-height: 72px; resize: vertical;
+    background: transparent; border: none; color: #cfe3ff;
+    font-size: 1.35rem; line-height: 1.35; outline: none;
+  }
+  .dual-line {
+    display: flex; gap: 8px; margin-top: 6px; font-size: 0.8rem; color: var(--muted);
+  }
+  .dual-line span { background: #132033; padding: 2px 8px; border-radius: 4px; }
+
+  /* Macro F-row */
+  .macros {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .macros button {
+    background: var(--mac); border: 1px solid #2a9b7a; color: #e8fff6;
+    border-radius: 8px; padding: 10px 4px; cursor: pointer;
+    font-size: 0.72rem; font-weight: 700; min-height: 48px;
+  }
+  .macros button:hover { filter: brightness(1.12); }
+  .macros button small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.62rem; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center;
+  }
+  .toolbar button, .toolbar select {
+    background: var(--key2); color: var(--text); border: 1px solid #3a4d66;
+    border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.8rem;
+  }
+  .toolbar .on { outline: 2px solid var(--acc); }
+
+  /* Main keypad */
+  .board {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid #243246;
+  }
+  .row {
+    display: grid;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+  .row.sg { grid-template-columns: repeat(9, 1fr); }
+  .row.keys { grid-template-columns: repeat(10, 1fr); }
+  .row.keys11 { grid-template-columns: repeat(11, 1fr); }
+  .row.bottom { grid-template-columns: 1.4fr 4fr 1.4fr 1.4fr; }
+
+  button.key {
+    background: var(--key); border: 1px solid #354a66; color: var(--text);
+    border-radius: 8px; min-height: 52px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; padding: 4px 2px;
+  }
+  button.key:hover { background: var(--key2); }
+  button.key .main { font-size: 1.05rem; font-weight: 600; }
+  button.key .glyph { font-size: 0.95rem; opacity: 0.95; }
+  button.key .hint { font-size: 0.58rem; color: var(--muted); }
+  button.key.d1 { border-color: var(--d1); }
+  button.key.d2 { border-color: var(--d2); }
+  button.key.d3 { border-color: var(--d3); background: #2a1c1a; }
+  button.key.wide { min-height: 52px; }
+  button.key.action { background: #2a3550; }
+
+  .legend {
+    margin-top: 10px; font-size: 0.75rem; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+  .tip {
+    margin-top: 8px; padding: 8px 10px; background: #122033; border-radius: 8px;
+    font-size: 0.82rem; color: #b8c9dc; min-height: 2.4em;
+  }
+
+  @media (max-width: 720px) {
+    .macros { grid-template-columns: repeat(4, 1fr); }
+    .row.keys, .row.keys11, .row.sg { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <h1>Star Gate — Scientific Keyboard / Calculator</h1>
+  <div class="sub">Макросы сверху (как F-клавиши) · двойные клавиши: буква + глиф · EN / RU · алфавит Star Gate (22 слота функций)</div>
+
+  <div class="display">
+    <div class="mode">MODE: <span id="modeLabel">EN + Star Gate</span> · LAYOUT: <span id="layoutLabel">QWERTY</span></div>
+    <textarea id="screen" placeholder="Ввод…"></textarea>
+    <div class="dual-line">
+      <span id="lastPair">last: —</span>
+      <span id="degreeInfo">degree: —</span>
+    </div>
+  </div>
+
+  <!-- 22 macro slots: 11 + 11 style scientific -->
+  <div class="macros" id="macros1"></div>
+  <div class="macros" id="macros2"></div>
+
+  <div class="toolbar">
+    <button type="button" id="btnEN" class="on">EN</button>
+    <button type="button" id="btnRU">RU (РФ)</button>
+    <button type="button" id="btnSG">Star Gate only</button>
+    <select id="alphaMode" title="Alphabet correspondence">
+      <option value="dual">Dual: letter ↔ glyph</option>
+      <option value="latin">Latin only</option>
+      <option value="glyph">Glyph only</option>
+    </select>
+    <button type="button" id="btnClear">C</button>
+    <button type="button" id="btnBack">⌫</button>
+    <button type="button" id="btnSpace">Space</button>
+    <button type="button" id="btnEnter">Enter</button>
+  </div>
+
+  <div class="board">
+    <div class="row sg" id="sgRow"></div>
+    <div class="row keys11" id="row1"></div>
+    <div class="row keys" id="row2"></div>
+    <div class="row keys" id="row3"></div>
+    <div class="row bottom" id="row4"></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--d1)"></i>D1 open</span>
+    <span><i style="background:var(--d2)"></i>D2 working</span>
+    <span><i style="background:var(--d3)"></i>D3 rigid</span>
+    <span><i style="background:var(--mac)"></i>Macros F1–F22</span>
+  </div>
+  <div class="tip" id="tip">Нажмите макрос или клавишу — здесь появится описание функции / кластера.</div>
+
+<script>
+// ---------- Star Gate core (9) + node labels form dual map ----------
+const SG = [
+  {k:'"', d:'d1', name:'open', tip:'D1 weak/open link · RAG fallback hop'},
+  {k:'(', d:'d2', name:'angle', tip:'D2 angle / pipeline step'},
+  {k:"'", d:'d2', name:'diamond', tip:'D2 stable bilateral'},
+  {k:'*', d:'d2', name:'tile', tip:'D2 tile / compose unit'},
+  {k:'&', d:'d2', name:'shared', tip:'D2 shared borrow'},
+  {k:'$', d:'d2', name:'lever', tip:'Lever C↔I balance'},
+  {k:')', d:'d3', name:'conflict', tip:'D3 conflict / exclude'},
+  {k:'%', d:'d3', name:'dense', tip:'D3 high saturation'},
+  {k:'#', d:'d3', name:'hyper', tip:'D3 hyper / atomic group'},
+];
+
+// Dual correspondence: Latin letter ↔ suggested glyph cluster (for learning)
+const DUAL = {
+  Q:'"', W:'(', E:"'", R:'*', T:'&', Y:'$', U:')', I:'%', O:'#', P:'"',
+  A:"'", S:'*', D:'&', F:'(', G:'$', H:')', J:'%', K:'#', L:"'",
+  Z:'"', X:'(', C:'*', V:'&', B:'$', N:')', M:'#',
+};
+
+const LAYOUTS = {
+  EN: {
+    name: 'QWERTY',
+    r1: [...'QWERTYUIOP'],
+    r2: [...'ASDFGHJKL'],
+    r3: [...'ZXCVBNM'],
+  },
+  RU: {
+    name: 'ЙЦУКЕН',
+    r1: [...'ЙЦУКЕНГШЩЗХ'],
+    r2: [...'ФЫВАПРОЛД'],
+    r3: [...'ЯЧСМИТЬБЮ'],
+  },
+};
+
+// 22 macros (scientific F-row style)
+const MACROS = [
+  {id:'F1',  label:'Lnk',  ins:'Lnk  "  ', tip:'Create edge: Lnk <a> <glyph> <b>'},
+  {id:'F2',  label:'Rsk',  ins:'Rsk\n', tip:'Connectivity / hot-swap risk'},
+  {id:'F3',  label:'Bal',  ins:'Bal\n', tip:'LeverBalance + marginality'},
+  {id:'F4',  label:'Rei',  ins:'Rei  +1\n', tip:'Reinforce pheromone'},
+  {id:'F5',  label:'Swp',  ins:'Swp\n', tip:'Hot-swap with risk check'},
+  {id:'F6',  label:'RAG',  ins:'RAG ', tip:'Retrieve D2-first, respect D3'},
+  {id:'F7',  label:'Path', ins:'Path  ', tip:'Path preferring D2'},
+  {id:'F8',  label:'Health', ins:'Health\n', tip:'Runtime metrics dump'},
+  {id:'F9',  label:'Sat',  ins:'Sat\n', tip:'Recompute saturation'},
+  {id:'F10', label:'Deg',  ins:'Deg\n', tip:'Show degrees of selection'},
+  {id:'F11', label:'Viz',  ins:'Viz\n', tip:'Build VizScene from graph'},
+  {id:'F12', label:'Hyp',  ins:'# ', tip:'Start hyper-group'},
+  {id:'F13', label:'Open', ins:'"', tip:'Insert D1 open glyph'},
+  {id:'F14', label:'Dia',  ins:"'", tip:'Insert D2 diamond'},
+  {id:'F15', label:'Conf', ins:')', tip:'Insert D3 conflict'},
+  {id:'F16', label:'Tile', ins:'*', tip:'Insert D2 tile'},
+  {id:'F17', label:'Share',ins:'&', tip:'Insert D2 shared'},
+  {id:'F18', label:'Lev',  ins:'$', tip:'Insert lever'},
+  {id:'F19', label:'Dense',ins:'%', tip:'Insert D3 dense'},
+  {id:'F20', label:'Ang',  ins:'(', tip:'Insert D2 angle'},
+  {id:'F21', label:'NodeT',ins:'T', tip:'Node type Transfer/Task'},
+  {id:'F22', label:'NodeQ',ins:'Q', tip:'Node type Query (RAG)'},
+];
+
+let layout = 'EN';
+let inputMode = 'dual'; // dual | latin | glyph
+let sgOnly = false;
+
+const screen = document.getElementById('screen');
+const tip = document.getElementById('tip');
+
+function insert(text) {
+  const a = screen.selectionStart, b = screen.selectionEnd;
+  const v = screen.value;
+  screen.value = v.slice(0, a) + text + v.slice(b);
+  screen.selectionStart = screen.selectionEnd = a + text.length;
+  screen.focus();
+}
+
+function setTip(t) { tip.textContent = t; }
+
+function renderMacros() {
+  const m1 = document.getElementById('macros1');
+  const m2 = document.getElementById('macros2');
+  m1.innerHTML = ''; m2.innerHTML = '';
+  MACROS.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerHTML = m.id + '<small>' + m.label + '</small>';
+    btn.title = m.tip;
+    btn.onclick = () => { insert(m.ins); setTip(m.id + ' · ' + m.tip); };
+    (i < 11 ? m1 : m2).appendChild(btn);
+  });
+}
+
+function sgDegree(ch) {
+  const g = SG.find(x => x.k === ch);
+  return g ? g.d.toUpperCase() : '—';
+}
+
+function renderSG() {
+  const row = document.getElementById('sgRow');
+  row.innerHTML = '';
+  SG.forEach(g => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'key ' + g.d;
+    b.innerHTML = '<span class="glyph">' + g.k + '</span><span class="hint">' + g.name + '</span>';
+    b.onclick = () => {
+      insert(g.k);
+      document.getElementById('lastPair').textContent = 'last: ' + g.k + ' (' + g.name + ')';
+      document.getElementById('degreeInfo').textContent = 'degree: ' + g.d.toUpperCase();
+      setTip(g.tip);
+    };
+    row.appendChild(b);
+  });
+}
+
+function makeLetterKey(ch) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'key';
+  const glyph = DUAL[ch] || DUAL[ch.toUpperCase()] || '';
+  let main = ch;
+  let sub = glyph;
+  if (inputMode === 'glyph' && glyph) { main = glyph; sub = ch; }
+  if (inputMode === 'latin') { sub = ''; }
+  b.innerHTML = '<span class="main">' + main + '</span>' +
+    (sub ? '<span class="glyph">' + sub + '</span>' : '') +
+    '<span class="hint">key</span>';
+  if (glyph) {
+    const d = sgDegree(glyph);
+    if (d === 'D1') b.classList.add('d1');
+    if (d === 'D2') b.classList.add('d2');
+    if (d === 'D3') b.classList.add('d3');
+  }
+  b.onclick = () => {
+    let ins = ch;
+    if (inputMode === 'glyph' && glyph) ins = glyph;
+    if (inputMode === 'dual') ins = ch; // type letter; glyph shown as correspondence
+    insert(ins);
+    document.getElementById('lastPair').textContent = glyph
+      ? ('last: ' + ch + ' ↔ ' + glyph)
+      : ('last: ' + ch);
+    document.getElementById('degreeInfo').textContent = 'degree: ' + (glyph ? sgDegree(glyph) : '—');
+    setTip(glyph
+      ? ('Соответствие: ' + ch + ' ↔ ' + glyph + ' · ' + (SG.find(x => x.k === glyph) || {}).tip)
+      : ('Буква ' + ch));
+  };
+  return b;
+}
+
+function renderLetters() {
+  const L = LAYOUTS[layout];
+  document.getElementById('layoutLabel').textContent = L.name;
+  document.getElementById('modeLabel').textContent =
+    (sgOnly ? 'Star Gate' : layout + ' + Star Gate') + ' · ' + inputMode;
+
+  const r1 = document.getElementById('row1');
+  const r2 = document.getElementById('row2');
+  const r3 = document.getElementById('row3');
+  const r4 = document.getElementById('row4');
+  r1.innerHTML = r2.innerHTML = r3.innerHTML = r4.innerHTML = '';
+
+  if (sgOnly) {
+    // only show SG already in sgRow; fill with node shortcuts
+    ;['T','R','B','M','E','Q','C','D','X','Y','Z'].forEach(ch => r1.appendChild(makeLetterKey(ch)));
+    return;
+  }
+
+  L.r1.forEach(ch => r1.appendChild(makeLetterKey(ch)));
+  L.r2.forEach(ch => r2.appendChild(makeLetterKey(ch)));
+  L.r3.forEach(ch => r3.appendChild(makeLetterKey(ch)));
+
+  // bottom row extras
+  const nums = document.createElement('button');
+  nums.type = 'button'; nums.className = 'key action'; nums.textContent = '123';
+  nums.onclick = () => { insert('0123456789'); setTip('Digits (node weight / ids)'); };
+  r4.appendChild(nums);
+
+  const sp = document.createElement('button');
+  sp.type = 'button'; sp.className = 'key wide action'; sp.textContent = 'Space';
+  sp.onclick = () => insert(' ');
+  r4.appendChild(sp);
+
+  const col = document.createElement('button');
+  col.type = 'button'; col.className = 'key action'; col.textContent = ':';
+  col.onclick = () => insert(':');
+  r4.appendChild(col);
+
+  const nl = document.createElement('button');
+  nl.type = 'button'; nl.className = 'key action'; nl.textContent = '↵';
+  nl.onclick = () => insert('\n');
+  r4.appendChild(nl);
+}
+
+function refresh() {
+  renderMacros();
+  renderSG();
+  renderLetters();
+}
+
+document.getElementById('btnEN').onclick = () => {
+  layout = 'EN'; sgOnly = false;
+  document.getElementById('btnEN').classList.add('on');
+  document.getElementById('btnRU').classList.remove('on');
+  document.getElementById('btnSG').classList.remove('on');
+  refresh();
+};
+document.getElementById('btnRU').onclick = () => {
+  layout = 'RU'; sgOnly = false;
+  document.getElementById('btnRU').classList.add('on');
+  document.getElementById('btnEN').classList.remove('on');
+  document.getElementById('btnSG').classList.remove('on');
+  refresh();
+};
+document.getElementById('btnSG').onclick = () => {
+  sgOnly = true;
+  document.getElementById('btnSG').classList.add('on');
+  document.getElementById('btnEN').classList.remove('on');
+  document.getElementById('btnRU').classList.remove('on');
+  refresh();
+};
+document.getElementById('alphaMode').onchange = (e) => {
+  inputMode = e.target.value;
+  refresh();
+};
+document.getElementById('btnClear').onclick = () => { screen.value = ''; };
+document.getElementById('btnBack').onclick = () => {
+  const a = screen.selectionStart;
+  if (a > 0) {
+    screen.value = screen.value.slice(0, a - 1) + screen.value.slice(a);
+    screen.selectionStart = screen.selectionEnd = a - 1;
+  }
+  screen.focus();
+};
+document.getElementById('btnSpace').onclick = () => insert(' ');
+document.getElementById('btnEnter').onclick = () => insert('\n');
+
+refresh();
+</script>
+</body>
+</html>

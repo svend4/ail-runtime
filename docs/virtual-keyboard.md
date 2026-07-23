@@ -1,76 +1,46 @@
-# Star Gate Virtual Keyboard
+# Star Gate Virtual Keyboard & Scientific Calculator
 
-Virtual input surface for the geometric alphabet (myFront4Solan3/4).
-Not only key → glyph, but key → **function / cluster / macro** for graph & RAG work.
+## Files
 
-## Layout (logical)
+| File | Role |
+|------|------|
+| `tools/stargate-calculator.html` | **Main UI** — calculator-style board |
+| `tools/stargate-keyboard.html` | Simpler earlier prototype |
 
-```text
-┌──────────────────────────────────────┐
-│  D1 ZONE          D2 ZONE              D3 ZONE      │
-│  [ " ] open       [ ( ] angle          [ ) ] conflict│
-│                   [ ' ] diamond        [ % ] dense  │
-│                   [ * ] tile           [ # ] hyper  │
-│                   [ & ] shared                       │
-│                   [ $ ] lever                        │
-│                                                      │
-│  NODES: [T]ransfer [R]efund [B]alance [M]odule ... │
-│  MACROS: [Lnk] [Rsk] [Bal] [Rei] [RAG] [Swp]        │
-└──────────────────────────────────────┘
-```
+Open `stargate-calculator.html` in a browser (local file is enough).
 
-## Key → meaning
+## What it includes
 
-| Key | Glyph role | Degree | Cluster / function |
-|-----|------------|--------|--------------------|
-| `"` | open stripe | D1 | weak link, draft edge, low-priority RAG hop |
-| `(` | angle | D2 | turn / transform / pipeline step |
-| `'` | diamond | D2 | stable bilateral relation |
-| `*` | tile | D2 | compose unit, small cycle |
-| `&` | shared window | D2 | shared borrow / multi-read |
-| `$` | lever | D2–D3 | show C↔I balance / health |
-| `)` | split | D3 | conflict, exclude, hard constraint |
-| `%` | dense | D3 | high saturation cluster |
-| `#` | grid | D3 | hyper-edge / atomic group |
+1. **22 macro keys (F1–F22)** on top — large, like a scientific calculator function row  
+   Lnk, Rsk, Bal, Rei, Swp, RAG, Path, Health, Sat, Deg, Viz, Hyp, …
 
-## Node label keys (examples)
+2. **Star Gate alphabet row** — `" ( ' * & $ ) % #` coloured by D1/D2/D3
 
-| Key | Suggested node type |
-|-----|---------------------|
-| T | Transfer / Task |
-| R | Refund / Resource |
-| B | Balance / Buffer |
-| M | Module |
-| E | Entity / Product |
-| Q | Query (RAG) |
-| C | Chunk (RAG) |
-| D | Document |
+3. **Dual keys** — each letter shows **Latin ↔ glyph** correspondence  
+   Modes: Dual / Latin only / Glyph only
 
-## Macros (graph + RAG)
+4. **Layouts**
+   - **EN** QWERTY
+   - **RU (РФ)** ЙЦУКЕН
+   - **Star Gate only** node shortcuts
 
-| Macro | Expands to / does |
-|-------|-------------------|
-| `Lnk a g b` | create edge a—g—b, recompute saturation |
-| `Rsk` | print hot-swap / connectivity risk for selection |
-| `Bal` | compute LeverBalance + marginality |
-| `Rei e +δ` | reinforce_edge (pheromone) |
-| `Swp` | propose hot-swap candidate with risk check |
-| `RAG q` | retrieve along D2 first, D1 fallback, respect D3 excludes |
-| `Path a b` | path preferring D2 edges |
-| `Health` | dump RuntimeMetrics + lever |
+5. **Display** like a calculator screen + last pair + degree readout
 
-## RAG policy with the alphabet
+## Correspondence idea
 
-1. Prefer paths whose edges are **D2** (`' * & (`).
-2. Use **D1** (`"`) only as weak bridges.
-3. Never cross **D3 conflict** `)` unless explicitly allowed.
-4. Treat `#` groups as atomic retrieval units (whole hyper-node).
-5. `$` triggers a health check before large retrieval batches.
+Letters are not random: the dual map teaches which glyph cluster a key is paired with (for training and M2M typing). Actual graph semantics always come from the **glyph** (`" ' ) # …`), not from the Latin letter alone.
 
-## Implementation options
+## RAG / graph macros
 
-1. **HTML virtual keyboard** — `tools/stargate-keyboard.html` (buttons insert glyph + tooltip).
-2. **Editor snippet pack** — each macro as snippet in IDE.
-3. **CLI** — parse M2M lines and macro commands into Graph API calls.
+Same policy as `docs/rag-macros.md`:
 
-The HTML prototype is the fastest way to type and learn the alphabet.
+- prefer D2 paths
+- D1 = fallback
+- D3 `)` = do not cross
+- `#` = atomic hyper cluster
+
+## Optional next steps
+
+- Load `myFront4Solan4.ttf` via `@font-face` so keys render real glyphs
+- Wire macros to a local WASM/CLI backend calling `connectivity` APIs
+- Add SPN (e.g. Spanish) layout the same way as RU if needed
