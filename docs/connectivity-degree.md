@@ -18,6 +18,34 @@ An edge now carries three axes of description:
 2. **EdgeKind** — role in the system (Control, Data, Ownership…)
 3. **ConnectivityDegree** — how open / fluid / rigid the link is
 
+## Quantitative measure: saturation
+
+Instead of assigning degree only by symbol, we can compute a continuous saturation value in `[0, 1]`.
+
+### Recommended formula
+
+For an edge `e = (u, v)`:
+
+```text
+s(e) = 2 * |common_neighbors(u, v)| / (deg(u) + deg(v))
+```
+
+Weighted variant:
+
+```text
+s(e) = sum(weight(w) for w in common) / sqrt(deg(u) * deg(v))
+```
+
+### Thresholds
+
+| saturation | degree | Meaning                        |
+|------------|--------|--------------------------------|
+| 0.00–0.25  | D1     | Weak / open connection         |
+| 0.25–0.75  | D2     | Jamming / fluid working zone   |
+| 0.75–1.00  | D3     | Rigid / saturated connection   |
+
+D2 is the main operational zone of the system.
+
 ## Mapping from Star Gate symbols
 
 | Symbol     | Recommended degree | Reason                              |
@@ -31,6 +59,8 @@ An edge now carries three axes of description:
 | `⬡`        | D3                 | Atomic group                        |
 | Dense figures | D3              | Maximum saturation                  |
 
+When both symbol and computed saturation are available, prefer the computed value and use the symbol as a semantic label.
+
 ## Conceptual scale
 
 ```text
@@ -42,6 +72,25 @@ Independent sets           Transitional regimes        Cliques
 - **D1** — almost no constraints, easy to break
 - **D2** — main working zone (ownership tension, evolution, information flow)
 - **D3** — strong guarantees, atomicity, explicit conflicts
+
+## Marginality ratio (inspired by jamming theory)
+
+A simple diagnostic for a subgraph:
+
+```text
+marginality = N / D
+```
+
+where:
+- `N` ≈ number of shared / triangular structures
+- `D` ≈ number of edge variations or degree of freedom
+
+Interpretation:
+- close to 0.5 → subgraph is near the critical (D2) regime
+- ≪ 0.5 → too sparse (D1-like)
+- ≫ 0.5 → over-saturated (D3-like)
+
+This can be used as a health check during hot-swap or graph validation.
 
 ## Usage
 
@@ -65,19 +114,49 @@ Independent sets           Transitional regimes        Cliques
 - Then saturate with D2 relations
 - Finally fix D3 groups
 
+## Minimal Rust helpers
+
+```rust
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum ConnectivityDegree {
+    D1,
+    D2,
+    D3,
+}
+
+fn saturation(u_deg: usize, v_deg: usize, common: usize) -> f64 {
+    if u_deg + v_deg == 0 {
+        return 0.0;
+    }
+    2.0 * common as f64 / (u_deg + v_deg) as f64
+}
+
+fn degree_from_saturation(s: f64) -> ConnectivityDegree {
+    if s < 0.25 {
+        ConnectivityDegree::D1
+    } else if s <= 0.75 {
+        ConnectivityDegree::D2
+    } else {
+        ConnectivityDegree::D3
+    }
+}
+```
+
 ## Example
 
 ```text
-Phone-X1.Price  →  Transfer        degree: D2
-Transfer        ✕  Refund          degree: D3
-Article         □̸  Phone-X1        degree: D2
+Phone-X1.Price  →  Transfer        degree: D2   (s ≈ 0.4)
+Transfer        ✕  Refund          degree: D3   (s ≈ 0.9)
+Article         □̸  Phone-X1        degree: D2   (s ≈ 0.5)
 Devices         ◇  Payments        degree: D2
 payments_module ⬡  (group)         degree: D3
-temporary link  —  (draft)         degree: D1
+temporary link  —  (draft)         degree: D1   (s ≈ 0.1)
 ```
 
 ## Relation to Ramsey theory and Jamming
 
 - **D1** corresponds to the sparse extreme (independent-set side of Ramsey)
 - **D3** corresponds to the dense extreme (clique side of Ramsey)
-- **D2** corresponds to the transitional / jamming regime studied in complex systems physics
+- **D2** corresponds to the transitional / jamming regime studied in complex systems physics (Parisi–Zamponi 2026 and related work)
+
+The continuous saturation value is a practical analogue of the interpolating function f(t) that appears in the jamming scaling theory.
