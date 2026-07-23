@@ -3,6 +3,14 @@ name = "ail-mvp"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "ail_mvp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ail-mvp"
+path = "src/main.rs"
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
