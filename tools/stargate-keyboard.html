@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>Star Gate Virtual Keyboard</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 1.5rem; background: #0f1419; color: #e7ecf1; }
+  h1 { font-size: 1.25rem; }
+  .hint { color: #9aa7b5; font-size: 0.9rem; margin-bottom: 1rem; }
+  #out {
+    width: 100%; min-height: 4.5rem; padding: 0.75rem; font-size: 1.25rem;
+    background: #1a2332; color: #d6e2ff; border: 1px solid #334; border-radius: 8px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+  button.key {
+    min-width: 3.2rem; min-height: 3.2rem; padding: 0.35rem;
+    border-radius: 8px; border: 1px solid #445; background: #243044; color: #fff;
+    cursor: pointer; font-size: 1.1rem; line-height: 1.1;
+  }
+  button.key small { display: block; font-size: 0.65rem; color: #9ab; }
+  button.key.d1 { border-color: #5a7a9a; }
+  button.key.d2 { border-color: #c9a227; }
+  button.key.d3 { border-color: #d4553a; background: #3a2220; }
+  button.key.macro { background: #1e3a2f; border-color: #3a8f6e; min-width: 4.5rem; }
+  button.key.node { background: #2a2a40; }
+  .zone { font-size: 0.75rem; color: #8af; margin-top: 0.8rem; }
+  .desc { margin-top: 1rem; padding: 0.75rem; background: #1a2332; border-radius: 8px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+  <h1>Star Gate — Virtual Keyboard</h1>
+  <p class="hint">Glyph keys insert alphabet marks. Macros insert ready commands for graph / RAG. Node keys insert type labels.</p>
+
+  <textarea id="out" placeholder="Type with the keys below…"></textarea>
+
+  <div class="zone">D1 — open</div>
+  <div class="row" id="d1"></div>
+  <div class="zone">D2 — working / jamming</div>
+  <div class="row" id="d2"></div>
+  <div class="zone">D3 — rigid / conflict / hyper</div>
+  <div class="row" id="d3"></div>
+  <div class="zone">Nodes</div>
+  <div class="row" id="nodes"></div>
+  <div class="zone">Macros (graph + RAG)</div>
+  <div class="row" id="macros"></div>
+
+  <div class="desc" id="desc">Click a key to see its function.</div>
+
+<script>
+const glyphs = [
+  {k:'"', zone:'d1', title:'open / weak link', tip:'D1 weak draft edge; low-priority RAG hop'},
+  {k:'(', zone:'d2', title:'angle', tip:'D2 turn / pipeline step'},
+  {k:"'", zone:'d2', title:'diamond', tip:'D2 stable bilateral relation'},
+  {k:'*', zone:'d2', title:'tile', tip:'D2 compose unit / small cycle'},
+  {k:'&', zone:'d2', title:'shared', tip:'D2 shared borrow / multi-read'},
+  {k:'$', zone:'d2', title:'lever', tip:'Show C↔I lever balance / health'},
+  {k:')', zone:'d3', title:'conflict', tip:'D3 hard exclude / conflict'},
+  {k:'%', zone:'d3', title:'dense', tip:'D3 high saturation'},
+  {k:'#', zone:'d3', title:'hyper', tip:'D3 hyper-edge / atomic group'},
+];
+
+const nodes = [
+  {k:'T', tip:'Transfer / Task node'},
+  {k:'R', tip:'Refund / Resource node'},
+  {k:'B', tip:'Balance / Buffer node'},
+  {k:'M', tip:'Module node'},
+  {k:'E', tip:'Entity / Product node'},
+  {k:'Q', tip:'Query node (RAG)'},
+  {k:'C', tip:'Chunk node (RAG)'},
+  {k:'D', tip:'Document node'},
+];
+
+const macros = [
+  {k:'Lnk', insert:'Lnk  "  ', tip:'Link: Lnk <a> <glyph> <b> — create edge + saturation'},
+  {k:'Rsk', insert:'Rsk\n', tip:'Print connectivity / hot-swap risk'},
+  {k:'Bal', insert:'Bal\n', tip:'LeverBalance + marginality'},
+  {k:'Rei', insert:'Rei  +1\n', tip:'Reinforce edge pheromone'},
+  {k:'Swp', insert:'Swp\n', tip:'Propose hot-swap with risk check'},
+  {k:'RAG', insert:'RAG ', tip:'Retrieve: D2 first, D1 fallback, respect D3'},
+  {k:'Path', insert:'Path  ', tip:'Path preferring D2 edges'},
+  {k:'Health', insert:'Health\n', tip:'Dump runtime metrics + lever'},
+];
+
+const out = document.getElementById('out');
+const desc = document.getElementById('desc');
+
+function addBtn(parent, label, cls, tip, insertText) {
+  const b = document.createElement('button');
+  b.className = 'key ' + cls;
+  b.innerHTML = label + (tip ? '<small>' + tip.split(' ')[0] + '</small>' : '');
+  b.title = tip;
+  b.onclick = () => {
+    const start = out.selectionStart;
+    const end = out.selectionEnd;
+    const v = out.value;
+    const ins = insertText;
+    out.value = v.slice(0, start) + ins + v.slice(end);
+    out.selectionStart = out.selectionEnd = start + ins.length;
+    out.focus();
+    desc.textContent = tip;
+  };
+  parent.appendChild(b);
+}
+
+glyphs.forEach(g => addBtn(document.getElementById(g.zone), g.k, g.zone, g.tip, g.k));
+nodes.forEach(n => addBtn(document.getElementById('nodes'), n.k, 'node', n.tip, n.k));
+macros.forEach(m => addBtn(document.getElementById('macros'), m.k, 'macro', m.tip, m.insert));
+</script>
+</body>
+</html>
