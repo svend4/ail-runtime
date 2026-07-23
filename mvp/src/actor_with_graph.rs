@@ -1,14 +1,7 @@
-//! Step 1: ShardActor owns its relation Graph
-//!
-//! Every module/actor now carries a connectivity view of its functions
-//! and important values. Saturation and degree are recomputed when the
-//! relation graph changes.
+//! Step 1 + Step 2: ShardActor owns Graph and hot_swap uses risk matrix
 
 use ail_mvp::connectivity::*;
 use std::collections::HashMap;
-
-// Minimal stand-ins so this file is self-contained for the step.
-// In the full MVP these come from main.rs / Binary AST.
 
 #[derive(Clone, Debug)]
 pub struct BinaryFunction {
@@ -32,13 +25,10 @@ pub struct BinaryModule {
     pub origin: ModuleOrigin,
 }
 
-/// Extended actor that owns both the executable module and its relation graph.
 pub struct ShardActorWithGraph {
     pub module: BinaryModule,
     pub history: Vec<BinaryModule>,
-    /// Connectivity view of functions and key values inside this module
     pub relations: Graph,
-    /// Map from function name → NodeId in the relation graph
     pub fn_nodes: HashMap<String, NodeId>,
     next_node_id: u64,
 }
@@ -62,9 +52,6 @@ impl ShardActorWithGraph {
         id
     }
 
-    /// Rebuild the relation graph from the current module functions.
-    /// For now we create one node per function and no edges yet.
-    /// Edges are added by higher-level policy (conflicts, data-flow, …).
     pub fn rebuild_relation_graph(&mut self) {
         self.relations = Graph::new();
         self.fn_nodes.clear();
@@ -76,7 +63,6 @@ impl ShardActorWithGraph {
         }
     }
 
-    /// Declare a typed relation between two functions.
     pub fn link_functions(
         &mut self,
         from_name: &str,
@@ -99,11 +85,12 @@ impl ShardActorWithGraph {
         Ok(())
     }
 
-    /// Print current connectivity view.
     pub fn print_relations(&self) {
-        println!("=== Relations of module `{}` (gen {}) ===", self.module.name, self.module.generation);
+        println!(
+            "=== Relations of module `{}` (gen {}) ===",
+            self.module.name, self.module.generation
+        );
         for e in &self.relations.edges {
-            // resolve names for readability
             let from_name = self
                 .fn_nodes
                 .iter()
@@ -125,11 +112,119 @@ impl ShardActorWithGraph {
         println!("  marginality = {:.3}", self.relations.marginality_ratio());
         println!();
     }
+
+    // ------------------------------------------------------------------
+    // Step 2: connectivity-aware hot_swap
+    // ------------------------------------------------------------------
+
+    /// Estimate risk of replacing the current module with `new_functions`.
+    ///
+    /// Current policy (MVP):
+    /// - if any existing D3 edge would be affected by a removed function → Critical
+    /// - if any D2 edge is affected → High
+    /// - otherwise Medium/Low depending on remaining structure
+    fn estimate_swap_risk(&self, new_functions: &[BinaryFunction]) -> SwapRisk {
+        let new_names: std::collections::HashSet<&str> =
+            new_functions.iter().map(|f| f.name.as_str()).collect();
+
+        let mut worst = SwapRisk::Low;
+
+        for e in &self.relations.edges {
+            let from_name = self
+                .fn_nodes
+                .iter()
+                .find(|(_, id)| **id == e.from)
+                .map(|(n, _)| n.as_str());
+            let to_name = self
+                .fn_nodes
+                .iter()
+                .find(|(_, id)| **id == e.to)
+                .map(|(n, _)| n.as_str());
+
+            let affected = match (from_name, to_name) {
+                (Some(a), Some(b)) => !new_names.contains(a) || !new_names.contains(b),
+                _ => false,
+            };
+
+            if !affected {
+                continue;
+            }
+
+            let risk = match e.degree {
+                ConnectivityDegree::D1 => SwapRisk::Low,
+                ConnectivityDegree::D2 => SwapRisk::High,
+                ConnectivityDegree::D3 => SwapRisk::Critical,
+            };
+
+            if risk > worst {
+                worst = risk;
+            }
+        }
+
+        worst
+    }
+
+    pub fn hot_swap(
+        &mut self,
+        new_functions: Vec<BinaryFunction>,
+        reason: &str,
+    ) -> Result<(), String> {
+        // 1. Classic weakening: no function may disappear
+        for old_fn in &self.module.functions {
+            if !new_functions.iter().any(|f| f.name == old_fn.name) {
+                return Err(format!(
+                    "Function `{}` was removed — weakening detected (gen {} → gen {})",
+                    old_fn.name, self.module.generation, self.module.generation + 1
+                ));
+            }
+        }
+
+        // 2. Connectivity risk
+        let risk = self.estimate_swap_risk(&new_functions);
+        println!("  connectivity risk: {:?}", risk);
+
+        match risk {
+            SwapRisk::Critical => {
+                return Err("Critical connectivity risk — swap rejected".into());
+            }
+            SwapRisk::High => {
+                println!("  warning: High risk — would require full ownership re-check in production");
+                // For MVP we still allow, but log loudly
+            }
+            SwapRisk::Medium | SwapRisk::Low => {}
+        }
+
+        // 3. Accept
+        let mut candidate = BinaryModule {
+            name: self.module.name.clone(),
+            version: self.module.version + 1,
+            functions: new_functions,
+            content_hash: format!("hash-gen-{}", self.module.generation + 1),
+            parent_hash: Some(self.module.content_hash.clone()),
+            generation: self.module.generation + 1,
+            origin: ModuleOrigin::Healed {
+                reason: reason.to_string(),
+                from_generation: self.module.generation,
+            },
+        };
+
+        self.history.push(self.module.clone());
+        self.module = candidate;
+
+        // Rebuild graph for the new generation (nodes may stay, edges re-declared by caller)
+        self.rebuild_relation_graph();
+
+        println!(
+            "Hot-swap accepted: gen {} → gen {}",
+            self.module.generation - 1,
+            self.module.generation
+        );
+        Ok(())
+    }
 }
 
-/// Demo of Step 1
-pub fn run_step1_demo() {
-    println!("=== Step 1: Relation Graph inside Actor ===\n");
+pub fn run_step1_and_step2_demo() {
+    println!("=== Step 1+2: Actor owns Graph + risk-aware hot_swap ===\n");
 
     let module = BinaryModule {
         name: "PaymentsModule".into(),
@@ -139,7 +234,7 @@ pub fn run_step1_demo() {
             BinaryFunction { name: "Refund".into() },
             BinaryFunction { name: "CheckBalance".into() },
         ],
-        content_hash: "abc".into(),
+        content_hash: "gen0".into(),
         parent_hash: None,
         generation: 0,
         origin: ModuleOrigin::Manual,
@@ -147,7 +242,6 @@ pub fn run_step1_demo() {
 
     let mut actor = ShardActorWithGraph::new(module);
 
-    // Declare semantic relations
     actor
         .link_functions("Transfer", "CheckBalance", StarGateSymbol::Directed, EdgeKind::Data, 1.0)
         .unwrap();
@@ -160,5 +254,33 @@ pub fn run_step1_demo() {
 
     actor.print_relations();
 
-    println!("Step 1 complete: actor now owns its connectivity view.");
+    // Compatible swap (all functions kept)
+    println!("1. Compatible hot-swap (all functions kept):");
+    let ok = actor.hot_swap(
+        vec![
+            BinaryFunction { name: "Transfer".into() },
+            BinaryFunction { name: "Refund".into() },
+            BinaryFunction { name: "CheckBalance".into() },
+        ],
+        "compatible update",
+    );
+    println!("   result: {:?}\n", ok);
+
+    // Re-link after rebuild
+    actor
+        .link_functions("Transfer", "Refund", StarGateSymbol::Conflict, EdgeKind::Ownership, 1.0)
+        .unwrap();
+
+    // Attempt to remove Refund while a D3 conflict edge exists
+    println!("2. Try to remove Refund (should hit Critical risk or weakening):");
+    let bad = actor.hot_swap(
+        vec![
+            BinaryFunction { name: "Transfer".into() },
+            BinaryFunction { name: "CheckBalance".into() },
+        ],
+        "remove Refund",
+    );
+    println!("   result: {:?}\n", bad);
+
+    println!("Steps 1 and 2 complete.");
 }
