@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Star Gate Scientific Keyboard</title>
 <style>
+  @font-face {
+    font-family: "Solan4";
+    src: url("fonts/myFront4Solan4.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "Solan3";
+    src: url("fonts/myFront4Solan3.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+  }
   :root {
     --bg: #0b0f14;
     --panel: #141b24;
@@ -17,6 +29,7 @@
     --mac: #1f6f5b;
     --text: #e8eef6;
     --muted: #8b9bb0;
+    --solan: "Solan4", "Solan3", monospace;
   }
   * { box-sizing: border-box; }
   body {
@@ -26,8 +39,6 @@
   }
   h1 { font-size: 1.1rem; margin: 0 0 8px; font-weight: 600; }
   .sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 10px; }
-
-  /* Display like calculator */
   .display {
     background: #0a1520;
     border: 1px solid #2a3b50;
@@ -35,25 +46,24 @@
     padding: 10px 12px;
     margin-bottom: 10px;
   }
-  .display .mode {
-    font-size: 0.7rem; color: var(--muted); letter-spacing: 0.04em;
-  }
+  .display .mode { font-size: 0.7rem; color: var(--muted); }
   #screen {
-    width: 100%; min-height: 72px; resize: vertical;
+    width: 100%; min-height: 88px; resize: vertical;
     background: transparent; border: none; color: #cfe3ff;
-    font-size: 1.35rem; line-height: 1.35; outline: none;
+    font-size: 1.6rem; line-height: 1.4; outline: none;
+    font-family: var(--solan);
+    letter-spacing: 0.06em;
   }
   .dual-line {
     display: flex; gap: 8px; margin-top: 6px; font-size: 0.8rem; color: var(--muted);
+    flex-wrap: wrap;
   }
   .dual-line span { background: #132033; padding: 2px 8px; border-radius: 4px; }
-
-  /* Macro F-row */
   .macros {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
     gap: 5px;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
   }
   .macros button {
     background: var(--mac); border: 1px solid #2a9b7a; color: #e8fff6;
@@ -62,49 +72,51 @@
   }
   .macros button:hover { filter: brightness(1.12); }
   .macros button small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.62rem; }
-
   .toolbar {
-    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center;
+    display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center;
   }
   .toolbar button, .toolbar select {
     background: var(--key2); color: var(--text); border: 1px solid #3a4d66;
     border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.8rem;
   }
   .toolbar .on { outline: 2px solid var(--acc); }
-
-  /* Main keypad */
   .board {
     background: var(--panel);
     border-radius: 12px;
     padding: 10px;
     border: 1px solid #243246;
   }
-  .row {
-    display: grid;
-    gap: 5px;
-    margin-bottom: 5px;
-  }
+  .row { display: grid; gap: 5px; margin-bottom: 5px; }
   .row.sg { grid-template-columns: repeat(9, 1fr); }
   .row.keys { grid-template-columns: repeat(10, 1fr); }
   .row.keys11 { grid-template-columns: repeat(11, 1fr); }
   .row.bottom { grid-template-columns: 1.4fr 4fr 1.4fr 1.4fr; }
-
   button.key {
     background: var(--key); border: 1px solid #354a66; color: var(--text);
-    border-radius: 8px; min-height: 52px; cursor: pointer;
+    border-radius: 8px; min-height: 58px; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 2px; padding: 4px 2px;
   }
   button.key:hover { background: var(--key2); }
-  button.key .main { font-size: 1.05rem; font-weight: 600; }
-  button.key .glyph { font-size: 0.95rem; opacity: 0.95; }
-  button.key .hint { font-size: 0.58rem; color: var(--muted); }
+  button.key .main { font-size: 1rem; font-weight: 600; }
+  button.key .glyph {
+    font-family: var(--solan);
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #f0f6ff;
+  }
+  button.key .hint { font-size: 0.55rem; color: var(--muted); }
   button.key.d1 { border-color: var(--d1); }
   button.key.d2 { border-color: var(--d2); }
   button.key.d3 { border-color: var(--d3); background: #2a1c1a; }
-  button.key.wide { min-height: 52px; }
   button.key.action { background: #2a3550; }
-
+  .sg-preview {
+    font-family: var(--solan);
+    font-size: 1.8rem;
+    letter-spacing: 0.12em;
+    padding: 6px 0;
+    color: #9ec1ff;
+  }
   .legend {
     margin-top: 10px; font-size: 0.75rem; color: var(--muted);
     display: flex; flex-wrap: wrap; gap: 10px;
@@ -114,7 +126,6 @@
     margin-top: 8px; padding: 8px 10px; background: #122033; border-radius: 8px;
     font-size: 0.82rem; color: #b8c9dc; min-height: 2.4em;
   }
-
   @media (max-width: 720px) {
     .macros { grid-template-columns: repeat(4, 1fr); }
     .row.keys, .row.keys11, .row.sg { grid-template-columns: repeat(6, 1fr); }
@@ -123,26 +134,28 @@
 </head>
 <body>
   <h1>Star Gate — Scientific Keyboard / Calculator</h1>
-  <div class="sub">Макросы сверху (как F-клавиши) · двойные клавиши: буква + глиф · EN / RU · алфавит Star Gate (22 слота функций)</div>
+  <div class="sub">Шрифты Solan4 + Solan3 · макросы F1–F22 · EN / RU · dual letter↔glyph</div>
 
   <div class="display">
-    <div class="mode">MODE: <span id="modeLabel">EN + Star Gate</span> · LAYOUT: <span id="layoutLabel">QWERTY</span></div>
-    <textarea id="screen" placeholder="Ввод…"></textarea>
+    <div class="mode">MODE: <span id="modeLabel">EN + Star Gate</span> · FONT: <span id="fontLabel">Solan4</span></div>
+    <textarea id="screen" placeholder="Ввод глифами Solan…"></textarea>
+    <div class="sg-preview" id="preview">"#'*&$()%</div>
     <div class="dual-line">
       <span id="lastPair">last: —</span>
       <span id="degreeInfo">degree: —</span>
     </div>
   </div>
 
-  <!-- 22 macro slots: 11 + 11 style scientific -->
   <div class="macros" id="macros1"></div>
   <div class="macros" id="macros2"></div>
 
   <div class="toolbar">
     <button type="button" id="btnEN" class="on">EN</button>
     <button type="button" id="btnRU">RU (РФ)</button>
-    <button type="button" id="btnSG">Star Gate only</button>
-    <select id="alphaMode" title="Alphabet correspondence">
+    <button type="button" id="btnSG">Star Gate</button>
+    <button type="button" id="btnFont4" class="on">Solan4</button>
+    <button type="button" id="btnFont3">Solan3</button>
+    <select id="alphaMode">
       <option value="dual">Dual: letter ↔ glyph</option>
       <option value="latin">Latin only</option>
       <option value="glyph">Glyph only</option>
@@ -162,111 +175,93 @@
   </div>
 
   <div class="legend">
-    <span><i style="background:var(--d1)"></i>D1 open</span>
-    <span><i style="background:var(--d2)"></i>D2 working</span>
-    <span><i style="background:var(--d3)"></i>D3 rigid</span>
-    <span><i style="background:var(--mac)"></i>Macros F1–F22</span>
+    <span><i style="background:var(--d1)"></i>D1</span>
+    <span><i style="background:var(--d2)"></i>D2</span>
+    <span><i style="background:var(--d3)"></i>D3</span>
+    <span><i style="background:var(--mac)"></i>F1–F22 macros</span>
   </div>
-  <div class="tip" id="tip">Нажмите макрос или клавишу — здесь появится описание функции / кластера.</div>
+  <div class="tip" id="tip">Установите шрифты: bash tools/fonts/install-fonts.sh — затем откройте через python -m http.server</div>
 
 <script>
-// ---------- Star Gate core (9) + node labels form dual map ----------
 const SG = [
-  {k:'"', d:'d1', name:'open', tip:'D1 weak/open link · RAG fallback hop'},
-  {k:'(', d:'d2', name:'angle', tip:'D2 angle / pipeline step'},
+  {k:'"', d:'d1', name:'open', tip:'D1 weak/open link'},
+  {k:'(', d:'d2', name:'angle', tip:'D2 angle / pipeline'},
   {k:"'", d:'d2', name:'diamond', tip:'D2 stable bilateral'},
-  {k:'*', d:'d2', name:'tile', tip:'D2 tile / compose unit'},
+  {k:'*', d:'d2', name:'tile', tip:'D2 compose unit'},
   {k:'&', d:'d2', name:'shared', tip:'D2 shared borrow'},
-  {k:'$', d:'d2', name:'lever', tip:'Lever C↔I balance'},
-  {k:')', d:'d3', name:'conflict', tip:'D3 conflict / exclude'},
+  {k:'$', d:'d2', name:'lever', tip:'Lever C\u2194I'},
+  {k:')', d:'d3', name:'conflict', tip:'D3 conflict'},
   {k:'%', d:'d3', name:'dense', tip:'D3 high saturation'},
-  {k:'#', d:'d3', name:'hyper', tip:'D3 hyper / atomic group'},
+  {k:'#', d:'d3', name:'hyper', tip:'D3 hyper group'},
 ];
-
-// Dual correspondence: Latin letter ↔ suggested glyph cluster (for learning)
 const DUAL = {
   Q:'"', W:'(', E:"'", R:'*', T:'&', Y:'$', U:')', I:'%', O:'#', P:'"',
   A:"'", S:'*', D:'&', F:'(', G:'$', H:')', J:'%', K:'#', L:"'",
   Z:'"', X:'(', C:'*', V:'&', B:'$', N:')', M:'#',
 };
-
 const LAYOUTS = {
-  EN: {
-    name: 'QWERTY',
-    r1: [...'QWERTYUIOP'],
-    r2: [...'ASDFGHJKL'],
-    r3: [...'ZXCVBNM'],
-  },
-  RU: {
-    name: 'ЙЦУКЕН',
-    r1: [...'ЙЦУКЕНГШЩЗХ'],
-    r2: [...'ФЫВАПРОЛД'],
-    r3: [...'ЯЧСМИТЬБЮ'],
-  },
+  EN: { name:'QWERTY', r1:[...'QWERTYUIOP'], r2:[...'ASDFGHJKL'], r3:[...'ZXCVBNM'] },
+  RU: { name:'\u0419\u0426\u0423\u041a\u0415\u041d', r1:[...'\u0419\u0426\u0423\u041a\u0415\u041d\u0413\u0428\u0429\u0417\u0425'], r2:[...'\u0424\u042b\u0412\u0410\u041f\u0420\u041e\u041b\u0414'], r3:[...'\u042f\u0427\u0421\u041c\u0418\u0422\u042c\u0411\u042e'] },
 };
-
-// 22 macros (scientific F-row style)
 const MACROS = [
-  {id:'F1',  label:'Lnk',  ins:'Lnk  "  ', tip:'Create edge: Lnk <a> <glyph> <b>'},
-  {id:'F2',  label:'Rsk',  ins:'Rsk\n', tip:'Connectivity / hot-swap risk'},
-  {id:'F3',  label:'Bal',  ins:'Bal\n', tip:'LeverBalance + marginality'},
-  {id:'F4',  label:'Rei',  ins:'Rei  +1\n', tip:'Reinforce pheromone'},
-  {id:'F5',  label:'Swp',  ins:'Swp\n', tip:'Hot-swap with risk check'},
-  {id:'F6',  label:'RAG',  ins:'RAG ', tip:'Retrieve D2-first, respect D3'},
-  {id:'F7',  label:'Path', ins:'Path  ', tip:'Path preferring D2'},
-  {id:'F8',  label:'Health', ins:'Health\n', tip:'Runtime metrics dump'},
-  {id:'F9',  label:'Sat',  ins:'Sat\n', tip:'Recompute saturation'},
-  {id:'F10', label:'Deg',  ins:'Deg\n', tip:'Show degrees of selection'},
-  {id:'F11', label:'Viz',  ins:'Viz\n', tip:'Build VizScene from graph'},
-  {id:'F12', label:'Hyp',  ins:'# ', tip:'Start hyper-group'},
-  {id:'F13', label:'Open', ins:'"', tip:'Insert D1 open glyph'},
-  {id:'F14', label:'Dia',  ins:"'", tip:'Insert D2 diamond'},
-  {id:'F15', label:'Conf', ins:')', tip:'Insert D3 conflict'},
-  {id:'F16', label:'Tile', ins:'*', tip:'Insert D2 tile'},
-  {id:'F17', label:'Share',ins:'&', tip:'Insert D2 shared'},
-  {id:'F18', label:'Lev',  ins:'$', tip:'Insert lever'},
-  {id:'F19', label:'Dense',ins:'%', tip:'Insert D3 dense'},
-  {id:'F20', label:'Ang',  ins:'(', tip:'Insert D2 angle'},
-  {id:'F21', label:'NodeT',ins:'T', tip:'Node type Transfer/Task'},
-  {id:'F22', label:'NodeQ',ins:'Q', tip:'Node type Query (RAG)'},
+  {id:'F1', label:'Lnk', ins:'Lnk  "  ', tip:'Create edge'},
+  {id:'F2', label:'Rsk', ins:'Rsk\n', tip:'Risk check'},
+  {id:'F3', label:'Bal', ins:'Bal\n', tip:'Lever balance'},
+  {id:'F4', label:'Rei', ins:'Rei  +1\n', tip:'Reinforce'},
+  {id:'F5', label:'Swp', ins:'Swp\n', tip:'Hot-swap'},
+  {id:'F6', label:'RAG', ins:'RAG ', tip:'Retrieve D2-first'},
+  {id:'F7', label:'Path', ins:'Path  ', tip:'D2 path'},
+  {id:'F8', label:'Health', ins:'Health\n', tip:'Metrics'},
+  {id:'F9', label:'Sat', ins:'Sat\n', tip:'Saturation'},
+  {id:'F10', label:'Deg', ins:'Deg\n', tip:'Degrees'},
+  {id:'F11', label:'Viz', ins:'Viz\n', tip:'VizScene'},
+  {id:'F12', label:'Hyp', ins:'# ', tip:'Hyper group'},
+  {id:'F13', label:'Open', ins:'"', tip:'D1 open'},
+  {id:'F14', label:'Dia', ins:"'", tip:'D2 diamond'},
+  {id:'F15', label:'Conf', ins:')', tip:'D3 conflict'},
+  {id:'F16', label:'Tile', ins:'*', tip:'D2 tile'},
+  {id:'F17', label:'Share', ins:'&', tip:'D2 shared'},
+  {id:'F18', label:'Lev', ins:'$', tip:'Lever'},
+  {id:'F19', label:'Dense', ins:'%', tip:'D3 dense'},
+  {id:'F20', label:'Ang', ins:'(', tip:'D2 angle'},
+  {id:'F21', label:'NodeT', ins:'T', tip:'Transfer node'},
+  {id:'F22', label:'NodeQ', ins:'Q', tip:'Query node'},
 ];
 
-let layout = 'EN';
-let inputMode = 'dual'; // dual | latin | glyph
-let sgOnly = false;
-
+let layout = 'EN', inputMode = 'dual', sgOnly = false, font = 'Solan4';
 const screen = document.getElementById('screen');
-const tip = document.getElementById('tip');
+const tipEl = document.getElementById('tip');
 
+function applyFont() {
+  const fam = font === 'Solan3' ? '"Solan3", "Solan4", monospace' : '"Solan4", "Solan3", monospace';
+  document.documentElement.style.setProperty('--solan', fam);
+  document.getElementById('fontLabel').textContent = font;
+  document.getElementById('preview').textContent = "\"#'*&$()% ABC";
+}
 function insert(text) {
-  const a = screen.selectionStart, b = screen.selectionEnd;
-  const v = screen.value;
+  const a = screen.selectionStart, b = screen.selectionEnd, v = screen.value;
   screen.value = v.slice(0, a) + text + v.slice(b);
   screen.selectionStart = screen.selectionEnd = a + text.length;
   screen.focus();
 }
-
-function setTip(t) { tip.textContent = t; }
-
+function setTip(t) { tipEl.textContent = t; }
+function sgDegree(ch) {
+  const g = SG.find(x => x.k === ch);
+  return g ? g.d.toUpperCase() : '\u2014';
+}
 function renderMacros() {
   const m1 = document.getElementById('macros1');
   const m2 = document.getElementById('macros2');
-  m1.innerHTML = ''; m2.innerHTML = '';
+  m1.innerHTML = m2.innerHTML = '';
   MACROS.forEach((m, i) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.innerHTML = m.id + '<small>' + m.label + '</small>';
     btn.title = m.tip;
-    btn.onclick = () => { insert(m.ins); setTip(m.id + ' · ' + m.tip); };
+    btn.onclick = () => { insert(m.ins); setTip(m.id + ' \u00b7 ' + m.tip); };
     (i < 11 ? m1 : m2).appendChild(btn);
   });
 }
-
-function sgDegree(ch) {
-  const g = SG.find(x => x.k === ch);
-  return g ? g.d.toUpperCase() : '—';
-}
-
 function renderSG() {
   const row = document.getElementById('sgRow');
   row.innerHTML = '';
@@ -284,17 +279,16 @@ function renderSG() {
     row.appendChild(b);
   });
 }
-
 function makeLetterKey(ch) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'key';
   const glyph = DUAL[ch] || DUAL[ch.toUpperCase()] || '';
-  let main = ch;
-  let sub = glyph;
+  let main = ch, sub = glyph;
   if (inputMode === 'glyph' && glyph) { main = glyph; sub = ch; }
-  if (inputMode === 'latin') { sub = ''; }
-  b.innerHTML = '<span class="main">' + main + '</span>' +
+  if (inputMode === 'latin') sub = '';
+  b.innerHTML =
+    '<span class="main">' + main + '</span>' +
     (sub ? '<span class="glyph">' + sub + '</span>' : '') +
     '<span class="hint">key</span>';
   if (glyph) {
@@ -306,100 +300,66 @@ function makeLetterKey(ch) {
   b.onclick = () => {
     let ins = ch;
     if (inputMode === 'glyph' && glyph) ins = glyph;
-    if (inputMode === 'dual') ins = ch; // type letter; glyph shown as correspondence
     insert(ins);
-    document.getElementById('lastPair').textContent = glyph
-      ? ('last: ' + ch + ' ↔ ' + glyph)
-      : ('last: ' + ch);
-    document.getElementById('degreeInfo').textContent = 'degree: ' + (glyph ? sgDegree(glyph) : '—');
-    setTip(glyph
-      ? ('Соответствие: ' + ch + ' ↔ ' + glyph + ' · ' + (SG.find(x => x.k === glyph) || {}).tip)
-      : ('Буква ' + ch));
+    document.getElementById('lastPair').textContent = glyph ? ('last: ' + ch + ' \u2194 ' + glyph) : ('last: ' + ch);
+    document.getElementById('degreeInfo').textContent = 'degree: ' + (glyph ? sgDegree(glyph) : '\u2014');
+    setTip(glyph ? (ch + ' \u2194 ' + glyph) : ('\u0411\u0443\u043a\u0432\u0430 ' + ch));
   };
   return b;
 }
-
 function renderLetters() {
   const L = LAYOUTS[layout];
-  document.getElementById('layoutLabel').textContent = L.name;
   document.getElementById('modeLabel').textContent =
-    (sgOnly ? 'Star Gate' : layout + ' + Star Gate') + ' · ' + inputMode;
-
+    (sgOnly ? 'Star Gate' : layout + ' + Star Gate') + ' \u00b7 ' + inputMode;
   const r1 = document.getElementById('row1');
   const r2 = document.getElementById('row2');
   const r3 = document.getElementById('row3');
   const r4 = document.getElementById('row4');
   r1.innerHTML = r2.innerHTML = r3.innerHTML = r4.innerHTML = '';
-
   if (sgOnly) {
-    // only show SG already in sgRow; fill with node shortcuts
     ;['T','R','B','M','E','Q','C','D','X','Y','Z'].forEach(ch => r1.appendChild(makeLetterKey(ch)));
     return;
   }
-
   L.r1.forEach(ch => r1.appendChild(makeLetterKey(ch)));
   L.r2.forEach(ch => r2.appendChild(makeLetterKey(ch)));
   L.r3.forEach(ch => r3.appendChild(makeLetterKey(ch)));
-
-  // bottom row extras
   const nums = document.createElement('button');
   nums.type = 'button'; nums.className = 'key action'; nums.textContent = '123';
-  nums.onclick = () => { insert('0123456789'); setTip('Digits (node weight / ids)'); };
+  nums.onclick = () => insert('0123456789');
   r4.appendChild(nums);
-
   const sp = document.createElement('button');
-  sp.type = 'button'; sp.className = 'key wide action'; sp.textContent = 'Space';
+  sp.type = 'button'; sp.className = 'key action'; sp.textContent = 'Space';
   sp.onclick = () => insert(' ');
   r4.appendChild(sp);
-
   const col = document.createElement('button');
   col.type = 'button'; col.className = 'key action'; col.textContent = ':';
   col.onclick = () => insert(':');
   r4.appendChild(col);
-
   const nl = document.createElement('button');
-  nl.type = 'button'; nl.className = 'key action'; nl.textContent = '↵';
+  nl.type = 'button'; nl.className = 'key action'; nl.textContent = '\u21b5';
   nl.onclick = () => insert('\n');
   r4.appendChild(nl);
 }
+function refresh() { applyFont(); renderMacros(); renderSG(); renderLetters(); }
 
-function refresh() {
-  renderMacros();
-  renderSG();
-  renderLetters();
-}
+const btnEN = document.getElementById('btnEN');
+const btnRU = document.getElementById('btnRU');
+const btnSG = document.getElementById('btnSG');
+const btnFont4 = document.getElementById('btnFont4');
+const btnFont3 = document.getElementById('btnFont3');
 
-document.getElementById('btnEN').onclick = () => {
-  layout = 'EN'; sgOnly = false;
-  document.getElementById('btnEN').classList.add('on');
-  document.getElementById('btnRU').classList.remove('on');
-  document.getElementById('btnSG').classList.remove('on');
-  refresh();
-};
-document.getElementById('btnRU').onclick = () => {
-  layout = 'RU'; sgOnly = false;
-  document.getElementById('btnRU').classList.add('on');
-  document.getElementById('btnEN').classList.remove('on');
-  document.getElementById('btnSG').classList.remove('on');
-  refresh();
-};
-document.getElementById('btnSG').onclick = () => {
-  sgOnly = true;
-  document.getElementById('btnSG').classList.add('on');
-  document.getElementById('btnEN').classList.remove('on');
-  document.getElementById('btnRU').classList.remove('on');
-  refresh();
-};
-document.getElementById('alphaMode').onchange = (e) => {
-  inputMode = e.target.value;
-  refresh();
-};
+btnEN.onclick = () => { layout = 'EN'; sgOnly = false; btnEN.classList.add('on'); btnRU.classList.remove('on'); btnSG.classList.remove('on'); refresh(); };
+btnRU.onclick = () => { layout = 'RU'; sgOnly = false; btnRU.classList.add('on'); btnEN.classList.remove('on'); btnSG.classList.remove('on'); refresh(); };
+btnSG.onclick = () => { sgOnly = true; btnSG.classList.add('on'); btnEN.classList.remove('on'); btnRU.classList.remove('on'); refresh(); };
+btnFont4.onclick = () => { font = 'Solan4'; btnFont4.classList.add('on'); btnFont3.classList.remove('on'); refresh(); };
+btnFont3.onclick = () => { font = 'Solan3'; btnFont3.classList.add('on'); btnFont4.classList.remove('on'); refresh(); };
+document.getElementById('alphaMode').onchange = (e) => { inputMode = e.target.value; refresh(); };
 document.getElementById('btnClear').onclick = () => { screen.value = ''; };
 document.getElementById('btnBack').onclick = () => {
   const a = screen.selectionStart;
   if (a > 0) {
-    screen.value = screen.value.slice(0, a - 1) + screen.value.slice(a);
-    screen.selectionStart = screen.selectionEnd = a - 1;
+    screen.value = screen.value.slice(0, a-1) + screen.value.slice(a);
+    screen.selectionStart = screen.selectionEnd = a-1;
   }
   screen.focus();
 };
