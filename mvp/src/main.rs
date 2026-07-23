@@ -1,3 +1,5 @@
+mod integration_demo;
+
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use sha2::{Sha256, Digest};
@@ -229,7 +231,10 @@ impl ShardActor {
     }
 
     fn call(&mut self, name: &str, args: Vec<Value>) -> Result<Value, ExecError> {
-        let func = self.module.functions.iter()
+        let func = self
+            .module
+            .functions
+            .iter()
             .find(|f| f.name == name)
             .cloned()
             .ok_or(ExecError::FunctionNotFound)?;
@@ -256,6 +261,7 @@ impl ShardActor {
         };
         candidate.content_hash = compute_content_hash(&candidate);
 
+        // classic weakening check
         for old_fn in &self.module.functions {
             if !candidate.functions.iter().any(|f| f.name == old_fn.name) {
                 return Err(format!(
@@ -295,9 +301,10 @@ fn print_generation(module: &BinaryModule) {
     let origin_str = match &module.origin {
         ModuleOrigin::Manual => "Manual".to_string(),
         ModuleOrigin::Loaded => "Loaded".to_string(),
-        ModuleOrigin::Healed { reason, from_generation } => {
-            format!("Healed from gen {} ({})", from_generation, reason)
-        }
+        ModuleOrigin::Healed {
+            reason,
+            from_generation,
+        } => format!("Healed from gen {} ({})", from_generation, reason),
     };
 
     let short_hash = if module.content_hash.len() >= 12 {
@@ -308,10 +315,7 @@ fn print_generation(module: &BinaryModule) {
 
     println!(
         "gen {:>2} | v{:<3} | {} | {}",
-        module.generation,
-        module.version,
-        short_hash,
-        origin_str
+        module.generation, module.version, short_hash, origin_str
     );
 }
 
@@ -322,16 +326,52 @@ fn make_transfer_function() -> BinaryFunction {
         name: "Transfer".into(),
         params: 3,
         body: vec![
-            Op::LoadField { obj: Reg(0), field: BALANCE, dest: Reg(3) },
-            Op::Ge { a: Reg(3), b: Reg(2), dest: Reg(4) },
-            Op::Assert { cond: Reg(4), error_code: 401 },
-            Op::SubChecked { a: Reg(3), b: Reg(2), dest: Reg(5) },
-            Op::StoreField { obj: Reg(0), field: BALANCE, value: Reg(5) },
-            Op::LoadField { obj: Reg(1), field: BALANCE, dest: Reg(6) },
-            Op::AddChecked { a: Reg(6), b: Reg(2), dest: Reg(7) },
-            Op::StoreField { obj: Reg(1), field: BALANCE, value: Reg(7) },
-            Op::ConstBool { value: true, dest: Reg(8) },
-            Op::Return { value: Some(Reg(8)) },
+            Op::LoadField {
+                obj: Reg(0),
+                field: BALANCE,
+                dest: Reg(3),
+            },
+            Op::Ge {
+                a: Reg(3),
+                b: Reg(2),
+                dest: Reg(4),
+            },
+            Op::Assert {
+                cond: Reg(4),
+                error_code: 401,
+            },
+            Op::SubChecked {
+                a: Reg(3),
+                b: Reg(2),
+                dest: Reg(5),
+            },
+            Op::StoreField {
+                obj: Reg(0),
+                field: BALANCE,
+                value: Reg(5),
+            },
+            Op::LoadField {
+                obj: Reg(1),
+                field: BALANCE,
+                dest: Reg(6),
+            },
+            Op::AddChecked {
+                a: Reg(6),
+                b: Reg(2),
+                dest: Reg(7),
+            },
+            Op::StoreField {
+                obj: Reg(1),
+                field: BALANCE,
+                value: Reg(7),
+            },
+            Op::ConstBool {
+                value: true,
+                dest: Reg(8),
+            },
+            Op::Return {
+                value: Some(Reg(8)),
+            },
         ],
     }
 }
@@ -353,6 +393,9 @@ fn make_module(version: u32, functions: Vec<BinaryFunction>) -> BinaryModule {
 fn main() {
     println!("=== AIL Runtime MVP Demo ===\n");
 
+    // ---------------------------------------------------------------
+    // Part A: classic Binary AST + Actor demo
+    // ---------------------------------------------------------------
     let module = make_module(1, vec![make_transfer_function()]);
     let mut actor = ShardActor::new(module, 16);
 
@@ -367,11 +410,14 @@ fn main() {
     }
 
     println!("1. Successful transfer 300:");
-    match actor.call("Transfer", vec![
-        Value::ObjectRef(from_id),
-        Value::ObjectRef(to_id),
-        Value::I64(300),
-    ]) {
+    match actor.call(
+        "Transfer",
+        vec![
+            Value::ObjectRef(from_id),
+            Value::ObjectRef(to_id),
+            Value::I64(300),
+        ],
+    ) {
         Ok(v) => println!("   Result: {:?}", v),
         Err(e) => println!("   Error: {:?}", e),
     }
@@ -384,11 +430,14 @@ fn main() {
     }
 
     println!("\n2. Insufficient funds:");
-    match actor.call("Transfer", vec![
-        Value::ObjectRef(from_id),
-        Value::ObjectRef(to_id),
-        Value::I64(99999),
-    ]) {
+    match actor.call(
+        "Transfer",
+        vec![
+            Value::ObjectRef(from_id),
+            Value::ObjectRef(to_id),
+            Value::I64(99999),
+        ],
+    ) {
         Ok(v) => println!("   Result: {:?}", v),
         Err(e) => println!("   Error: {:?}", e),
     }
@@ -401,11 +450,17 @@ fn main() {
     println!();
     actor.print_lineage();
 
-    println!("\n5. Hot-swap (function removed - should fail):");
+    println!("\n4. Hot-swap (function removed - should fail):");
     match actor.hot_swap(vec![], "remove Transfer") {
         Ok(()) => println!("   Unexpected success"),
         Err(e) => println!("   Result: {}", e),
     }
+
+    // ---------------------------------------------------------------
+    // Part B: Connectivity integration demo
+    // ---------------------------------------------------------------
+    println!("\n");
+    integration_demo::run_integration_demo();
 
     println!("\n=== All demos finished ===");
 }
