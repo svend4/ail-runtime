@@ -1,46 +1,35 @@
 # Star Gate Virtual Keyboard & Scientific Calculator
 
-## Files
+## Main UI
 
-| File | Role |
-|------|------|
-| `tools/stargate-calculator.html` | **Main UI** — calculator-style board |
-| `tools/stargate-keyboard.html` | Simpler earlier prototype |
+**`tools/stargate-calculator.html`**
 
-Open `stargate-calculator.html` in a browser (local file is enough).
+Features:
 
-## What it includes
+- Solan4 / Solan3 fonts (real glyphs on keys and screen)
+- 22 macro keys F1–F22
+- EN + RU (РФ) layouts
+- Dual letter ↔ glyph keys
+- Star Gate alphabet row coloured by D1/D2/D3
+- Calculator-style display
 
-1. **22 macro keys (F1–F22)** on top — large, like a scientific calculator function row  
-   Lnk, Rsk, Bal, Rei, Swp, RAG, Path, Health, Sat, Deg, Viz, Hyp, …
+## Install fonts
 
-2. **Star Gate alphabet row** — `" ( ' * & $ ) % #` coloured by D1/D2/D3
+```bash
+bash tools/fonts/install-fonts.sh
+cd tools && python3 -m http.server 8765
+```
 
-3. **Dual keys** — each letter shows **Latin ↔ glyph** correspondence  
-   Modes: Dual / Latin only / Glyph only
+Open `http://localhost:8765/stargate-calculator.html`.
 
-4. **Layouts**
-   - **EN** QWERTY
-   - **RU (РФ)** ЙЦУКЕН
-   - **Star Gate only** node shortcuts
+(Browsers often block `file://` font loads; a tiny local server is reliable.)
 
-5. **Display** like a calculator screen + last pair + degree readout
+## Font switch
 
-## Correspondence idea
+In the toolbar: **Solan4** / **Solan3** — same alphabet, micro differences on a few letter glyphs.
 
-Letters are not random: the dual map teaches which glyph cluster a key is paired with (for training and M2M typing). Actual graph semantics always come from the **glyph** (`" ' ) # …`), not from the Latin letter alone.
+## Related
 
-## RAG / graph macros
-
-Same policy as `docs/rag-macros.md`:
-
-- prefer D2 paths
-- D1 = fallback
-- D3 `)` = do not cross
-- `#` = atomic hyper cluster
-
-## Optional next steps
-
-- Load `myFront4Solan4.ttf` via `@font-face` so keys render real glyphs
-- Wire macros to a local WASM/CLI backend calling `connectivity` APIs
-- Add SPN (e.g. Spanish) layout the same way as RU if needed
+- `docs/font-stargate-map.md`
+- `docs/rag-macros.md`
+- `examples/m2m_glyph_line.md`
