@@ -2,17 +2,13 @@ use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use sha2::{Sha256, Digest};
 
-// ============================================================
-// 1. Базовые типы
-// ============================================================
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct Reg(u16);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 struct ObjectId(u64);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 enum Value {
     I64(i64),
     Bool(bool),
@@ -60,10 +56,6 @@ struct BinaryModule {
     origin: ModuleOrigin,
 }
 
-// ============================================================
-// 2. Состояние
-// ============================================================
-
 #[derive(Debug, Clone)]
 struct Object {
     fields: HashMap<u16, Value>,
@@ -97,15 +89,14 @@ impl ActorState {
     }
 
     fn set_reg(&mut self, reg: Reg, value: Value) -> Result<(), ExecError> {
-        let slot = self.registers.get_mut(reg.0 as usize).ok_or(ExecError::InvalidReg)?;
-        *slot = value;
-        Ok(())
+        if let Some(slot) = self.registers.get_mut(reg.0 as usize) {
+            *slot = value;
+            Ok(())
+        } else {
+            Err(ExecError::InvalidReg)
+        }
     }
 }
-
-// ============================================================
-// 3. Ошибки
-// ============================================================
 
 #[derive(Debug, PartialEq)]
 enum ExecError {
@@ -118,10 +109,6 @@ enum ExecError {
     FieldNotFound,
     FunctionNotFound,
 }
-
-// ============================================================
-// 4. Интерпретатор
-// ============================================================
 
 fn expect_i64(v: &Value) -> Result<i64, ExecError> {
     match v {
@@ -216,10 +203,6 @@ fn execute(func: &BinaryFunction, state: &mut ActorState) -> Result<Value, ExecE
     Ok(Value::Bool(true))
 }
 
-// ============================================================
-// 5. Hash + Lineage
-// ============================================================
-
 fn compute_content_hash(module: &BinaryModule) -> String {
     let mut hasher = Sha256::new();
     let data = serde_json::json!({
@@ -229,10 +212,6 @@ fn compute_content_hash(module: &BinaryModule) -> String {
     hasher.update(data.to_string().as_bytes());
     format!("{:x}", hasher.finalize())
 }
-
-// ============================================================
-// 6. Actor + Hot-Swap
-// ============================================================
 
 struct ShardActor {
     state: ActorState,
@@ -252,8 +231,8 @@ impl ShardActor {
     fn call(&mut self, name: &str, args: Vec<Value>) -> Result<Value, ExecError> {
         let func = self.module.functions.iter()
             .find(|f| f.name == name)
-            .ok_or(ExecError::FunctionNotFound)?
-            .clone();
+            .cloned()
+            .ok_or(ExecError::FunctionNotFound)?;
 
         for (i, arg) in args.into_iter().enumerate() {
             self.state.set_reg(Reg(i as u16), arg)?;
@@ -277,11 +256,10 @@ impl ShardActor {
         };
         candidate.content_hash = compute_content_hash(&candidate);
 
-        // Weakening check
         for old_fn in &self.module.functions {
             if !candidate.functions.iter().any(|f| f.name == old_fn.name) {
                 return Err(format!(
-                    "Function `{}` was removed — weakening detected (gen {} → gen {})",
+                    "Function `{}` was removed - weakening detected (gen {} -> gen {})",
                     old_fn.name, self.module.generation, candidate.generation
                 ));
             }
@@ -291,8 +269,8 @@ impl ShardActor {
         self.module = candidate;
 
         println!(
-            "Hot-swap accepted: gen {} → gen {}",
-            self.module.generation - 1,
+            "Hot-swap accepted: gen {} -> gen {}",
+            self.module.generation.saturating_sub(1),
             self.module.generation
         );
         Ok(())
@@ -337,10 +315,6 @@ fn print_generation(module: &BinaryModule) {
     );
 }
 
-// ============================================================
-// 7. Demo
-// ============================================================
-
 const BALANCE: u16 = 0;
 
 fn make_transfer_function() -> BinaryFunction {
@@ -382,45 +356,56 @@ fn main() {
     let module = make_module(1, vec![make_transfer_function()]);
     let mut actor = ShardActor::new(module, 16);
 
-    // Create wallets
     let from_id = actor.state.alloc_object();
     let to_id = actor.state.alloc_object();
-    actor.state.objects.get_mut(&from_id).unwrap().fields.insert(BALANCE, Value::I64(1000));
-    actor.state.objects.get_mut(&to_id).unwrap().fields.insert(BALANCE, Value::I64(200));
 
-    // Test 1: successful transfer
+    if let Some(obj) = actor.state.objects.get_mut(&from_id) {
+        obj.fields.insert(BALANCE, Value::I64(1000));
+    }
+    if let Some(obj) = actor.state.objects.get_mut(&to_id) {
+        obj.fields.insert(BALANCE, Value::I64(200));
+    }
+
     println!("1. Successful transfer 300:");
-    let result = actor.call("Transfer", vec![
+    match actor.call("Transfer", vec![
         Value::ObjectRef(from_id),
         Value::ObjectRef(to_id),
         Value::I64(300),
-    ]);
-    println!("   Result: {:?}", result);
-    println!("   From: {:?}", actor.state.objects[&from_id].fields.get(&BALANCE));
-    println!("   To:   {:?}", actor.state.objects[&to_id].fields.get(&BALANCE));
+    ]) {
+        Ok(v) => println!("   Result: {:?}", v),
+        Err(e) => println!("   Error: {:?}", e),
+    }
 
-    // Test 2: insufficient funds
+    if let Some(obj) = actor.state.objects.get(&from_id) {
+        println!("   From: {:?}", obj.fields.get(&BALANCE));
+    }
+    if let Some(obj) = actor.state.objects.get(&to_id) {
+        println!("   To:   {:?}", obj.fields.get(&BALANCE));
+    }
+
     println!("\n2. Insufficient funds:");
-    let result = actor.call("Transfer", vec![
+    match actor.call("Transfer", vec![
         Value::ObjectRef(from_id),
         Value::ObjectRef(to_id),
         Value::I64(99999),
-    ]);
-    println!("   Result: {:?}", result);
+    ]) {
+        Ok(v) => println!("   Result: {:?}", v),
+        Err(e) => println!("   Error: {:?}", e),
+    }
 
-    // Test 3: Hot-swap
     println!("\n3. Hot-swap (compatible):");
-    let new_funcs = vec![make_transfer_function()];
-    let _ = actor.hot_swap(new_funcs, "compatible update");
+    if let Err(e) = actor.hot_swap(vec![make_transfer_function()], "compatible update") {
+        println!("   Error: {}", e);
+    }
 
-    // Test 4: Lineage
     println!();
     actor.print_lineage();
 
-    // Test 5: Weakening rejected
-    println!("\n5. Hot-swap (function removed — should fail):");
-    let result = actor.hot_swap(vec![], "remove Transfer");
-    println!("   Result: {:?}", result);
+    println!("\n5. Hot-swap (function removed - should fail):");
+    match actor.hot_swap(vec![], "remove Transfer") {
+        Ok(()) => println!("   Unexpected success"),
+        Err(e) => println!("   Result: {}", e),
+    }
 
     println!("\n=== All demos finished ===");
 }
