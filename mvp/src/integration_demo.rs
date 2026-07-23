@@ -7,7 +7,7 @@ use ail_mvp::connectivity::*;
 
 /// Build a small relation graph for the Payments module.
 ///
-/// Transfer  ✕  Refund     (conflict, expected D3)
+/// Transfer  ✕  Refund     (conflict, expected high saturation / D3)
 /// Transfer  →  CheckBalance
 /// CheckBalance — Balance
 fn build_payments_relation_graph() -> Graph {
@@ -23,7 +23,7 @@ fn build_payments_relation_graph() -> Graph {
     g.add_node(check);
     g.add_node(balance);
 
-    // First add weaker links so the conflict edge sees common context
+    // Weaker links first so the conflict edge sees shared context
     g.add_edge(
         transfer,
         check,
@@ -78,13 +78,11 @@ fn decide_hot_swap(
     changing_to: NodeId,
     new_symbol: StarGateSymbol,
 ) -> Result<(), String> {
-    // Find old edge if any
     let old = relation_graph
         .edges
         .iter()
         .find(|e| e.from == changing_from && e.to == changing_to);
 
-    // Build a temporary new edge description
     let temp_sat = relation_graph.saturation(changing_from, changing_to);
     let new_degree = Graph::assign_degree(temp_sat);
 
@@ -100,7 +98,7 @@ fn decide_hot_swap(
 
     let risk = match old {
         Some(old_e) => hot_swap_risk(old_e, &new_edge),
-        None => SwapRisk::Low, // new edge
+        None => SwapRisk::Low,
     };
 
     println!(
@@ -121,17 +119,15 @@ pub fn run_integration_demo() {
     let g = build_payments_relation_graph();
     print_edge_report(&g);
 
-    // Example 1: try to relax the conflict edge (D3 -> something weaker)
-    println!("1. Attempt to downgrade Transfer ✕ Refund (should be Critical/High):");
+    println!("1. Attempt to downgrade Transfer ✕ Refund (expect Critical/High):");
     match decide_hot_swap(&g, NodeId(1), NodeId(2), StarGateSymbol::Simple) {
         Ok(()) => println!("   Allowed"),
         Err(e) => println!("   Rejected: {}", e),
     }
 
-    // Example 2: modify a D2-ish data edge
     println!("\n2. Attempt to change Transfer → CheckBalance:");
     match decide_hot_swap(&g, NodeId(1), NodeId(3), StarGateSymbol::Directed) {
-        Ok(()) => println!("   Allowed (or medium risk)");
+        Ok(()) => println!("   Allowed (or medium risk)"),
         Err(e) => println!("   Rejected: {}", e),
     }
 
