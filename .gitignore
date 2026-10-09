@@ -1,0 +1,12 @@
+# Rust
+/mvp/target/
+**/*.rs.bk
+
+# Editors / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Font binaries are distributed separately (see tools/fonts/README.md)
+/tools/fonts/*.ttf

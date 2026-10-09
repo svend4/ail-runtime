@@ -65,3 +65,20 @@ ail-runtime/
 ## Лицензия
 
 MIT
+
+## Аудит и вариант v2 (ветка `claude/busy-pasteur-xxbvai`)
+
+В этой ветке проведён технический, концептуальный и практический аудит проекта и добавлен параллельный вариант ядра **v2** — без удаления или переписывания существующего кода и документов.
+
+- Сводка и навигация: [`docs/audit/README.md`](docs/audit/README.md)
+- Реестр замечаний: [`docs/audit/05-findings-register.md`](docs/audit/05-findings-register.md)
+- Собственный вариант и дорожная карта: [`docs/audit/04-v2-proposal.md`](docs/audit/04-v2-proposal.md)
+- Спецификация v0.2: [`docs/v2/specification-v0.2.md`](docs/v2/specification-v0.2.md)
+- Код: [`mvp/src/v2/`](mvp/src/v2/)
+
+```bash
+cd mvp
+cargo test                 # тесты v1 + v2
+cargo run --bin ail-mvp    # демо v1
+cargo run --bin v2-demo    # демо v2: выведенный граф, контракты, ownership, lineage
+```

@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  rust:
+    name: build · test · clippy · fmt
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mvp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mvp
+      - name: Build (all binaries)
+        run: cargo build --all-targets --locked
+      - name: Test
+        run: cargo test --locked
+      - name: Clippy (v2 must be warning-free; v1 is legacy)
+        run: cargo clippy --lib --bins --locked -- -D warnings -A clippy::all -W clippy::correctness
+      - name: Format check (v2 + binaries; v1 sources are frozen as-is)
+        run: rustfmt --edition 2021 --check src/v2/*.rs src/bin/*.rs
+      - name: Run demos
+        run: |
+          cargo run --quiet --bin ail-mvp
+          cargo run --quiet --bin v2-demo
